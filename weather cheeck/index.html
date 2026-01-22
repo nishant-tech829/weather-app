@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Weather App</title>
+
+<style>
+:root{
+    --bg:#4facfe;
+    --card:#ffffff;
+    --text:#000;
+}
+.dark{
+    --bg:#121212;
+    --card:#1f1f1f;
+    --text:#fff;
+}
+
+body{
+    margin:0;
+    font-family:Arial;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+.container{
+    background:var(--card);
+    width:95%;
+    max-width:360px;
+    padding:20px;
+    border-radius:12px;
+    text-align:center;
+}
+
+input,button{
+    width:100%;
+    padding:10px;
+    margin-top:8px;
+}
+
+button{
+    border:none;
+    background:#4facfe;
+    color:white;
+    cursor:pointer;
+}
+
+.toggle{
+    background:#333;
+    margin-bottom:10px;
+}
+
+.suggestion{
+    padding:6px;
+    border-bottom:1px solid #ccc;
+    cursor:pointer;
+    text-align:left;
+}
+
+.suggestion:hover{
+    background:#eee;
+}
+
+.dark .suggestion:hover{
+    background:#333;
+}
+
+.forecast{
+    display:flex;
+    overflow-x:auto;
+    margin-top:10px;
+}
+
+.day{
+    min-width:80px;
+    padding:5px;
+    margin-right:6px;
+    border-radius:8px;
+    background:#ddd;
+}
+
+.dark .day{
+    background:#333;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<button class="toggle" onclick="toggleDark()">🌙 Toggle Dark Mode</button>
+
+<h2>🌤 Weather App</h2>
+
+<button onclick="getLocation()">📍 Use My Location</button>
+
+<input type="text" id="city" placeholder="Search city" onkeyup="searchCity()">
+
+<div id="suggestions"></div>
+<div id="current"></div>
+<div class="forecast" id="forecast"></div>
+</div>
+
+<script>
+const apiKey="50c1ce07c99e4da2b1b172044262001";
+
+// 🌙 Dark Mode
+function toggleDark(){
+    document.body.classList.toggle("dark");
+}
+
+// 📍 Auto Location
+function getLocation(){
+    navigator.geolocation.getCurrentPosition(pos=>{
+        getWeather(pos.coords.latitude+","+pos.coords.longitude);
+    });
+}
+
+// 🔍 City Search
+function searchCity(){
+    const q=document.getElementById("city").value;
+    if(q.length<2) return;
+
+    fetch(`https://api.weatherapi.com/v1/search.json?key=${apiKey}&q=${q}`)
+    .then(r=>r.json())
+    .then(d=>{
+        let out="";
+        d.forEach(c=>{
+            out+=`<div class="suggestion"
+            onclick="getWeather('${c.lat},${c.lon}')">
+            ${c.name}, ${c.country}</div>`;
+        });
+        document.getElementById("suggestions").innerHTML=out;
+    });
+}
+
+// 🌦 Weather + 7 Day Forecast
+function getWeather(q){
+    document.getElementById("suggestions").innerHTML="";
+
+    fetch(`https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${q}&days=7&aqi=yes`)
+    .then(r=>r.json())
+    .then(d=>{
+        document.getElementById("current").innerHTML=`
+        <h3>${d.location.name}, ${d.location.country}</h3>
+        <img src="https:${d.current.condition.icon}">
+        <p><b>${d.current.temp_c}°C</b> (Feels ${d.current.feelslike_c}°C)</p>
+        <p>${d.current.condition.text}</p>
+        <p>💧 Humidity: ${d.current.humidity}%</p>
+        <p>💨 Wind: ${d.current.wind_kph} km/h</p>
+        `;
+
+        let f="";
+        d.forecast.forecastday.forEach(day=>{
+            f+=`
+            <div class="day">
+            <small>${day.date}</small><br>
+            <img src="https:${day.day.condition.icon}"><br>
+            ${day.day.avgtemp_c}°C
+            </div>`;
+        });
+        document.getElementById("forecast").innerHTML=f;
+    });
+}
+</script>
+
+</body>
+</html>
